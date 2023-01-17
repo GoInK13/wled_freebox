@@ -28,6 +28,8 @@ from freepybox import Freepybox
 import requests
 import time
 
+PRINT_ENABLE = 1 #0: Disable print, 1:Enable
+
 # Instantiate the Freepybox class using default options.
 fbx = Freepybox()
 
@@ -37,8 +39,9 @@ fbx.open('192.168.1.254')
 
 def CheckFixIp(json):
 	isFix=False
-	print("\n-----\njson="+str(json))
-	print("IP:"+str(json["l3connectivities"][0]["addr"]))
+	if PRINT_ENABLE==1:
+		print("\n-----\njson="+str(json))
+		print("IP:"+str(json["l3connectivities"][0]["addr"]))
 	realName=""
 	realIp=""
 	for name in json["names"]:
@@ -48,7 +51,8 @@ def CheckFixIp(json):
 			realIp=str(address["addr"])
 			if int(address["addr"].replace("192.168.1.",""))>200:
 				isFix=True
-	print(str(realName)+"="+str(realIp)+"="+str(isFix))
+	if PRINT_ENABLE==1:
+		print(str(realName)+"="+str(realIp)+"="+str(isFix))
 	return isFix
 
 def GetBrightness():
@@ -59,20 +63,37 @@ def GetBrightness():
 	except Exception as e:
 		return 20
 
-counterUserOld=0
-oldValue=GetBrightness()
-
-while True:
-	try:
-		fbx_lan_host = fbx.lan.get_hosts_list()
-	except Exception as e:
-		fbx.open('192.168.1.254')
+def CountUser():
 	counterUser=0
 	for jsHost in fbx_lan_host:
 		if jsHost["active"]==True:
 			if CheckFixIp(jsHost)==False:
 				counterUser+=1
-	print("Number user = "+str(counterUser))
+	return counterUser
+
+counterUserOld=0
+oldValue=GetBrightness()
+
+reConnect=False
+
+while True:
+	try:
+		fbx_lan_host = fbx.lan.get_hosts_list()
+	except Exception as e:
+		reConnect=True
+	if reConnect==True:
+		fbx.open('192.168.1.254')
+		time.sleep(10)
+		reConnect=False
+		pass
+	try:
+		counterUser=CountUser()
+	except Exception as e:
+		if PRINT_ENABLE==1:
+			print("Exception during counter user:"+str(e))
+		counterUser=0
+	if PRINT_ENABLE==1:
+		print("Number user = "+str(counterUser))
 	if counterUserOld!=counterUser:
 		if counterUser>0:
 			if oldValue<=20:
