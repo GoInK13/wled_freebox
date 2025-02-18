@@ -29,11 +29,13 @@ import requests
 import time
 
 PRINT_ENABLE = 1 #0: Disable print, 1:Enable
+POWER_ON = 255
+POWER_OFF = 5
 
 # Instantiate the Freepybox class using default options.
 fbx = Freepybox()
 
-# Connect to the freebox with default options. 
+# Connect to the freebox with default options.
 # Be ready to authorize the application on the Freebox.
 fbx.open('192.168.1.254')
 
@@ -44,13 +46,17 @@ def CheckFixIp(json):
 		print("IP:"+str(json["l3connectivities"][0]["addr"]))
 	realName=""
 	realIp=""
-	for name in json["names"]:
-		realName+=name["name"]+","
-	for address in json["l3connectivities"]:
-		if address["active"]==True and address["af"]=="ipv4":
-			realIp=str(address["addr"])
-			if int(address["addr"].replace("192.168.1.",""))>200:
-				isFix=True
+	try:
+		for name in json["names"]:
+			realName+=name["name"]+","
+		for address in json["l3connectivities"]:
+			if address["active"]==True and address["af"]=="ipv4":
+				realIp=str(address["addr"])
+				if int(address["addr"].replace("192.168.1.",""))>200:
+					isFix=True
+	except Exception as e:
+		if PRINT_ENABLE==1:
+			print("Exception : "+str(e))
 	if PRINT_ENABLE==1:
 		print(str(realName)+"="+str(realIp)+"="+str(isFix))
 	return isFix
@@ -98,14 +104,15 @@ while True:
 		if counterUser>0:
 			if oldValue<=20:
 				oldValue=255
-			try:
-				x = requests.get('http://192.168.1.241/win&A='+str(oldValue))
-			except Exception as e:
-				pass
+			if str(GetBrightness())!='0':
+				try:
+					x = requests.get('http://192.168.1.241/win&A='+str(oldValue))
+				except Exception as e:
+					pass
 		else:
 			oldValue=GetBrightness()
 			try:
-				x = requests.get('http://192.168.1.241/win&A=20')
+				x = requests.get('http://192.168.1.241/win&A='+str(POWER_OFF))
 			except Exception as e:
 				pass
 		counterUserOld=counterUser
