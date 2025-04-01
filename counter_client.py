@@ -13,12 +13,14 @@ from paho.mqtt import client as mqtt_client
 broker = '192.168.1.203'
 port = 1883
 topic = "python/freeByGoInK/1/wifiClients"
+topic_list = "python/freeByGoInK/1/wifiClientsListFix"
+topic_listAll = "python/freeByGoInK/1/wifiClientsListAll"
 # Generate a Client ID with the publish prefix.
 client_id = f'teslamateImmich'
 username = 'MQTT'
 password = 'MQTT'
 
-PRINT_ENABLE = 1 #0: Disable print, 1:Enable
+PRINT_ENABLE = 0 #0: Disable print, 1:Enable
 POWER_ON = 255
 POWER_OFF = 5
 
@@ -36,23 +38,6 @@ def connect_mqtt():
     client.connect(broker, port)
     return client
 
-
-def publish(client):
-    msg_count = 1
-    while True:
-        time.sleep(1)
-        msg = f"{msg_count}"
-        result = client.publish(topic, msg)
-        # result: [0, 1]
-        status = result[0]
-        if status == 0:
-            print(f"Send `{msg}` to topic `{topic}`")
-        else:
-            print(f"Failed to send message to topic {topic}")
-        msg_count += 1
-        if msg_count > 500:
-            break
-
 async def main(client):
     # Instantiate the Freepybox class using default options.
     fbx = Freepybox(api_version="latest")
@@ -63,7 +48,7 @@ async def main(client):
     if PRINT_ENABLE==1:
         print("Connection success")
 
-    def CheckFixIp(json):
+    def GetClientFromJson(json):
         isFix=False
         if PRINT_ENABLE==1:
             print("\n-----\njson="+str(json))
@@ -87,55 +72,24 @@ async def main(client):
                 print("Exception : "+str(e))
         if int(realIp.replace("192.168.1.",""))>=200:
             isFix=True
-        return isFix
+        return isFix,realIp,realName
 
-    def CheckFixIp_old(json):
-        isFix=False
-        if PRINT_ENABLE==1:
-            print("\n-----\njson="+str(json))
-            print("IP:"+str(json["l3connectivities"][0]["addr"]))
-        realName=""
-        realIp=""
-        try:
-            for name in json["names"]:
-                realName+=name["name"]+","
-            for address in json["l3connectivities"]:
-                if address["active"]==True and address["af"]=="ipv4":
-                    realIp=str(address["addr"])
-                    if int(address["addr"].replace("192.168.1.",""))>200:
-                        isFix=True
-        except Exception as e:
-            isFix=True
-            if PRINT_ENABLE==1:
-                print("Exception : "+str(e))
-        if PRINT_ENABLE==1:
-            print(str(realName)+"="+str(realIp)+"="+str(isFix))
-        return isFix
-
-    def GetBrightness():
-        try:
-            x = requests.get("http://192.168.1.241/win")
-            value=str(x.content)
-            return int(value[value.index("<ac>")+4:value.index("</ac>")])
-        except Exception as e:
-            return 20
-
-    def CountUser():
-        counterUser=0
+    def GetClients():
+        clients = []
         for jsHost in fbx_lan_host:
             if jsHost["active"]==True:
-                if CheckFixIp(jsHost)==False:
-                    counterUser+=1
-                    if PRINT_ENABLE==1:
-                        print("+1:"+str(jsHost))
-        return counterUser
-
-    counterUserOld=0
-    oldValue=GetBrightness()
+                is_ip_fix, ip_number, ip_name = GetClientFromJson(jsHost)
+                clients.append({is_ip_fix, ip_number, ip_name})
+                if PRINT_ENABLE==1:
+                    print("+1:"+str(clients[-1]))
+        return clients
 
     reConnect=False
 
     while True:
+        clientsAll=[]
+        clients=[]
+        counterUser=0
         try:
             fbx_lan_host = await fbx.lan.get_hosts_list()
         except Exception as e:
@@ -148,36 +102,24 @@ async def main(client):
             reConnect=False
             pass
         try:
-            counterUser=CountUser()
+            clientsAll=GetClients()
+            clients=[clientsFalse for clientsFalse in clientsAll if False in clientsFalse]
+            counterUser=len(clients)
         except Exception as e:
             if PRINT_ENABLE==1:
                 print("Exception during counter user:"+str(e))
             counterUser=0
         if PRINT_ENABLE==1:
-            print("Number user = "+str(counterUser))
-        if False and counterUserOld!=counterUser:
-            if counterUser>0:
-                if oldValue<=20:
-                    oldValue=255
-                if str(GetBrightness())!='0':
-                    try:
-                        x = requests.get('http://192.168.1.241/win&A='+str(oldValue))
-                    except Exception as e:
-                        pass
-            else:
-                oldValue=GetBrightness()
-                try:
-                    x = requests.get('http://192.168.1.241/win&A='+str(POWER_OFF))
-                except Exception as e:
-                    pass
-            counterUserOld=counterUser
+            print("users : "+str(clients))
         result = client.publish(topic, counterUser)
-        # result: [0, 1]
         status = result[0]
-        if status == 0:
-            print("Send "+str(counterUser)+" to topic "+str(topic))
-        else:
-            print("Failed to send message "+str(counterUser)+" to topic "+str(topic))
+        result = client.publish(topic_listAll, str(clientsAll))
+        result = client.publish(topic_list, str(clients))
+        if PRINT_ENABLE==1:
+            if status == 0:
+                print("Send "+str(counterUser)+" to topic "+str(topic))
+            else:
+                print("Failed to send message "+str(counterUser)+" to topic "+str(topic))
         time.sleep(30)
 
     # Properly close the session.
