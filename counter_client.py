@@ -13,7 +13,7 @@ from paho.mqtt import client as mqtt_client
 broker = '192.168.1.203'
 port = 1883
 topic = "python/freeByGoInK/1/wifiClients"
-topic_list = "python/freeByGoInK/1/wifiClientsListFix"
+topic_list = "python/freeByGoInK/1/wifiClientsList"
 topic_listAll = "python/freeByGoInK/1/wifiClientsListAll"
 # Generate a Client ID with the publish prefix.
 client_id = f'teslamateImmich'
