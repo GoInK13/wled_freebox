@@ -72,6 +72,9 @@ async def main(client):
                 print("Exception : "+str(e))
         if int(realIp.replace("192.168.1.",""))>=200:
             isFix=True
+        # Add a debug for the freebox pop…
+        if realIp=="192.168.1.145" and realName=="Pop":
+            isFix=True
         return isFix,realIp,realName
 
     def GetClients():
