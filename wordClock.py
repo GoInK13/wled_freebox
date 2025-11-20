@@ -47,15 +47,17 @@ async def main():
 		isFix=False
 		if PRINT_ENABLE==1:
 			print("\n-----\njson="+str(json))
-			print("IP:"+str(json["l3connectivities"][0]["addr"]))
 		realName=""
 		realIp=""
 		try:
-			for name in json["names"]:
-				realName+=name["name"]+","
+			if "names" in json:
+				for name in json["names"]:
+					if "name" in name:
+						realName+=name["name"]+","
 			for address in json["l3connectivities"]:
 				if address["active"]==True and address["af"]=="ipv4":
 					realIp=str(address["addr"])
+					print("IP:"+str(realIp))
 					if int(address["addr"].replace("192.168.1.",""))>200:
 						isFix=True
 		except Exception as e:
