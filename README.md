@@ -20,7 +20,7 @@ venv-wordclock/bin/pip3 install requests
 
 ```
 source venv-wordclock/bin/activate
-python3 wordClock.py
+python3 counter_client.py
 ```
 
 ## Add service
@@ -28,19 +28,19 @@ python3 wordClock.py
 Create a new service :
 
 ```
-sudo nano /etc/systemd/system/wordClock.service
+sudo nano /etc/systemd/system/freeCounterWifi.service
 ```
 
 And paste the next text :
 
 ```
 [Unit]
-Description=Word clock script to set brightness
+Description=Count wifi client on freebox
 After=default.target
 
 [Service]
 WorkingDirectory=/home/pierrot/servers/wled_freebox
-ExecStart=/home/pierrot/servers/wled_freebox/venv-wordclock/bin/python3 /home/pierrot/servers/wled_freebox/wordClock.py
+ExecStart=/home/pierrot/servers/wled_freebox/venv-wordclock/bin/python3 /home/pierrot/servers/wled_freebox/counter_client.py
 #Restart=on-failure
 User=pierrot
 
@@ -52,6 +52,6 @@ WantedBy=default.target
 
 ```
 sudo systemctl daemon-reload
-sudo systemctl enable wordClock.service
-sudo systemctl start wordClock.service
+sudo systemctl enable freeCounterWifi.service
+sudo systemctl start freeCounterWifi.service
 ```

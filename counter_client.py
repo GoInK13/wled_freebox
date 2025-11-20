@@ -52,24 +52,14 @@ async def main(client):
         isFix=False
         if PRINT_ENABLE==1:
             print("\n-----\njson="+str(json))
-            print("IP:"+str(json["l3connectivities"][0]["addr"]))
         realName=""
-        try:
-            __find_start = str(json).find("'primary_name'")+17
-            __find_stop  = str(json).find("'", __find_start)
-            realName=str(json)[__find_start:__find_stop]
-        except Exception as e:
+        if "primary_name" in json:
+            realName = str(json["primary_name"])
+        else:
             realName="Unknown"
-            if PRINT_ENABLE==1:
-                print("Exception : "+str(e))
-        try:
-            __find_start = str(json).find("'192.168.1")+1
-            __find_stop  = str(json).find("'", __find_start)
-            realIp=str(json)[__find_start:__find_stop]
-        except Exception as e:
-            realIp="192.168.1.255"
-            if PRINT_ENABLE==1:
-                print("Exception : "+str(e))
+        for address in json["l3connectivities"]:
+            if address["active"]==True and address["af"]=="ipv4":
+                realIp=str(address["addr"])
         if int(realIp.replace("192.168.1.",""))>=200:
             isFix=True
         # Add a debug for the freebox pop…
@@ -107,6 +97,8 @@ async def main(client):
         try:
             clientsAll=GetClients()
             clients=[clientsFalse for clientsFalse in clientsAll if False in clientsFalse]
+            # Remove False in the list
+            clients=[{x for x in s if x is not False} for s in clients]
             counterUser=len(clients)
         except Exception as e:
             if PRINT_ENABLE==1:
