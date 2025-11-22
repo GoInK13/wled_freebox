@@ -5,6 +5,7 @@ import asyncio
 from freebox_api import Freepybox
 import requests
 import time
+import re
 
 # Import mqtt
 from paho.mqtt import client as mqtt_client
@@ -48,28 +49,47 @@ async def main(client):
     if PRINT_ENABLE==1:
         print("Connection success")
 
+    def check_apple_hostname(hostname):
+        # The regex pattern for a UUID:
+        # ^ = start of string
+        # [0-9a-fA-F] = any hex character
+        # {8} = exactly 8 times
+        # $ = end of string
+        pattern = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        if re.match(pattern, hostname):
+            return "Apple random"
+        else:
+            return hostname
+
     def GetClientFromJson(json):
         isFix=False
+        realIp=0
+        realName="None"
         if PRINT_ENABLE==1:
             print("\n-----\njson="+str(json))
-        realName=""
         if "primary_name" in json:
             realName = str(json["primary_name"])
         else:
             realName="Unknown"
-        for address in json["l3connectivities"]:
-            if address["active"]==True and address["af"]=="ipv4":
-                realIp=str(address["addr"])
+        realName = check_apple_hostname(realName)
+        if "l3connectivities" in json:
+            for address in json["l3connectivities"]:
+                if "active" in address and "af" in address and "addr" in address:
+                    if address["active"]==True and address["af"]=="ipv4":
+                        realIp=str(address["addr"])
         if int(realIp.replace("192.168.1.",""))>=200:
             isFix=True
-        return isFix,realIp,realName
+        if realIp == 0:
+            return False, 0, "None", False
+        return isFix,realIp,realName, True
 
     def GetClients():
         clients = []
         for jsHost in fbx_lan_host:
             if jsHost["active"]==True:
-                is_ip_fix, ip_number, ip_name = GetClientFromJson(jsHost)
-                clients.append({is_ip_fix, ip_number, ip_name})
+                is_ip_fix, ip_number, ip_name, valid = GetClientFromJson(jsHost)
+                if valid == True:
+                    clients.append({is_ip_fix, ip_number, ip_name})
                 if PRINT_ENABLE==1:
                     print("+1:"+str(clients[-1]))
         return clients
