@@ -77,10 +77,10 @@ async def main(client):
                 if "active" in address and "af" in address and "addr" in address:
                     if address["active"]==True and address["af"]=="ipv4":
                         realIp=str(address["addr"])
-        if int(realIp.replace("192.168.1.",""))>=200:
-            isFix=True
         if realIp == 0:
             return False, 0, "None", False
+        elif int(realIp.replace("192.168.1.",""))>=200:
+            isFix=True
         return isFix,realIp,realName, True
 
     def GetClients():
